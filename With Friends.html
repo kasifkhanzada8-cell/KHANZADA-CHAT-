@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>With Friends</title>
+<style>
+:root{--bg:#efeae2;--bar:#075e54;--me:#d9fdd3;--other:#fff;--text:#111;--sub:#667781;--card:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b141a;--bar:#202c33;--me:#005c4b;--other:#202c33;--text:#e9edef;--sub:#8696a0;--card:#202c33}}
+:root[data-theme="dark"]{--bg:#0b141a;--bar:#202c33;--me:#005c4b;--other:#202c33;--text:#e9edef;--sub:#8696a0;--card:#202c33}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Noto Naskh Arabic","Noto Nastaliq Urdu",sans-serif;display:flex;flex-direction:column}
+header{background:var(--bar);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px}
+.av{width:40px;height:40px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff}
+header b{display:block;font-size:17px}header small{opacity:.8;font-size:12px}
+#msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:6px}
+.m{max-width:80%;padding:7px 10px;border-radius:10px;background:var(--other);align-self:flex-start;word-wrap:break-word}
+.m.me{background:var(--me);align-self:flex-end}
+.n{font-size:12px;font-weight:600;color:#06a884;margin-bottom:2px}
+.t{font-size:11px;color:var(--sub);text-align:right;margin-top:2px}
+form,.bar{display:flex;gap:8px;padding:8px;background:var(--bg)}
+input{flex:1;border:0;border-radius:22px;padding:12px 16px;font-size:16px;background:var(--card);color:var(--text);outline:0}
+button{border:0;border-radius:50%;width:46px;height:46px;background:#00a884;color:#fff;font-size:20px}
+#login{margin:auto;padding:24px;text-align:center;width:min(320px,90%)}
+#login h1{color:#00a884;margin:0 0 4px}#lg{width:96px;margin:0 auto 8px}
+#login p{color:var(--sub)}
+#login button{width:100%;border-radius:24px;margin-top:12px;font-size:16px}
+#note{font-size:12px;color:var(--sub);text-align:center;padding:4px}
+</style>
+</head>
+<body>
+<div id="login">
+  <div id="lg"></div><h1>With Friends</h1>
+  <p>دوستوں کے ساتھ چیٹ کریں</p>
+  <input id="nm" placeholder="آپ کا نام" maxlength="20">
+  <button id="go">شروع کریں</button>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const LOGO=s=>`<svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g${s}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#25d366"/><stop offset="1" stop-color="#075e54"/></linearGradient></defs><circle cx="50" cy="50" r="50" fill="url(#g${s})"/><rect x="18" y="24" width="44" height="30" rx="15" fill="#fff"/><polygon points="26,52 24,65 39,53" fill="#fff"/><rect x="38" y="42" width="44" height="30" rx="15" fill="#c8f7d4"/><polygon points="74,70 78,83 63,71" fill="#c8f7d4"/><circle cx="50" cy="57" r="3.2" fill="#075e54"/><circle cx="60" cy="57" r="3.2" fill="#075e54"/><circle cx="70" cy="57" r="3.2" fill="#075e54"/></svg>`;
+let name='';try{name=localStorage.getItem('wf_name')||''}catch(e){}
+let uid='u'+Math.random().toString(36).slice(2,9);try{uid=localStorage.getItem('wf_uid')||uid;localStorage.setItem('wf_uid',uid)}catch(e){}
+$('#nm').value=name;$('#lg').innerHTML=LOGO(96);
+$('#go').onclick=()=>{const v=$('#nm').value.trim();if(!v)return;name=v;try{localStorage.setItem('wf_name',v)}catch(e){}start()};
+function el(t,c,x){const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
+async function start(){
+  document.body.innerHTML='';
+  const h=el('header');const a=el('div','av');a.innerHTML=LOGO(40);const w=el('div');w.append(el('b',0,'With Friends'),el('small',0,'گروپ • 50 دوست'));h.append(a,w);
+  const box=el('div');box.id='msgs';const note=el('div',0,'');note.id='note';
+  const f=document.createElement('form');const inp=el('input');inp.placeholder='پیغام لکھیں';inp.dir='auto';inp.autocomplete='off';const b=el('button',0,'➤');b.type='submit';f.append(inp,b);
+  document.body.append(h,note,box,f);
+  let db=null;try{db=await claude.use('db')}catch(e){}
+  const local=[];
+  function draw(list){box.innerHTML='';list.forEach(m=>{const d=el('div','m'+(m.uid===uid?' me':''));if(m.uid!==uid)d.append(el('div','n',m.name));const tx=el('div',0,m.text);tx.dir='auto';d.append(tx);d.append(el('div','t',new Date(m.t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})));box.append(d)});box.scrollTop=box.scrollHeight}
+  const col=db&&db.collection('chat');
+  if(col){
+    note.textContent='';
+    col.orderBy('t').limit(200).onSnapshot(s=>draw(s.docs.map(d=>d.data())),()=>{note.textContent='کنکشن میں مسئلہ ہے'});
+  }else note.textContent='ڈیمو موڈ: ابھی صرف آپ کے فون پر نظر آئے گا';
+  f.onsubmit=async e=>{e.preventDefault();const text=inp.value.trim();if(!text)return;inp.value='';
+    const m={uid,name,text,t:Date.now()};
+    if(col){try{await col.doc(m.t+'-'+uid).set(m)}catch(er){note.textContent='پیغام نہیں بھیجا جا سکا'}}
+    else{local.push(m);draw(local)}};
+}
+if(name)start();
+</script>
+</body>
+</html>
